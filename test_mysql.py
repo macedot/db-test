@@ -1,18 +1,19 @@
-import logging
+import sys
 import time
+import random
+import logging
 
-from locust import User, between, TaskSet, task, events
+from uuid import uuid4
+from locust import User, task
 from sqlalchemy import create_engine
 
 
 def create_conn(conn_string):
-    print("Connecting to MySQL")
     return create_engine('mysql+pymysql://' + conn_string).connect()
 
 
-def execute_query(conn_string, query):
-    _conn = create_conn(conn_string)
-    rs = _conn.execute(query)
+def execute_query(conn, query):
+    rs = conn.execute(query)
     return rs
 
 
@@ -56,13 +57,32 @@ class MySqlUser(User):
 
 
 class TestMySql(MySqlUser):
-    min_wait = 0
-    max_wait = 0
-    wait_time = between(min_wait, max_wait)
+    conn_string = 'root@localhost:3306/test'
+    conn = None
 
-    conn_string = '2412923313019:2412923313019@localhost:3306/DEV_ezCheckB_Sincronica'
+    def __init__(self, environment):
+        super().__init__(environment)
+        self.conn = create_conn(self.conn_string)
+        # create_table = '''
+        # CREATE TABLE `locust` (
+        #     `AUTOSEQUENCIAL` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        #     `NAME` TINYTEXT NOT NULL COLLATE 'latin1_swedish_ci',
+        #     `VALUE` BIGINT(20) UNSIGNED NOT NULL DEFAULT '0',
+        #     PRIMARY KEY (`AUTOSEQUENCIAL`) USING BTREE
+        # )
+        # ENGINE=InnoDB
+        # ;
+        # '''
+        # execute_query(self.conn, create_table)
+
+    # @task
+    # def query_select_all(self):
+    #     self.client.execute_query(conn=self.conn,
+    #                               query="SELECT * FROM locust")
 
     @task
-    def execute_query(self):
-        self.client.execute_query(conn_string=self.conn_string,
-                                  query="SELECT * FROM DUMP_20200603")
+    def query_insert_one(self):
+        name = str(uuid4())
+        value = random.randint(0, sys.maxsize)
+        query = f"INSERT INTO locust (NAME,VALUE) VALUES ('{name}',{value})"
+        self.client.execute_query(conn=self.conn, query=query)
