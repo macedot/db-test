@@ -1,0 +1,4 @@
+locust
+vertica-python
+sqlalchemy
+pymysql
